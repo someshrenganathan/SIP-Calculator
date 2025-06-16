@@ -1,0 +1,321 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* All CSS rules are now prefixed with #sip-calculator-app to prevent conflicts with your blog's theme. */
+    #sip-calculator-app {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f9f9fb;
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+    }
+    #sip-calculator-app .hidden {
+        display: none !important;
+    }
+    #sip-calculator-app h2, #sip-calculator-app h3 { text-align: center; color: #1a237e; margin-top: 0; margin-bottom: 30px; font-weight: 700; }
+    #sip-calculator-app .calculator-body { display: flex; gap: 30px; flex-wrap: wrap; }
+    #sip-calculator-app .input-section, #sip-calculator-app .output-section { flex: 1; min-width: 280px; }
+    #sip-calculator-app .input-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+    #sip-calculator-app .input-column { flex: 1; min-width: 200px; }
+    #sip-calculator-app .form-group { margin-bottom: 22px; }
+    #sip-calculator-app .form-group label { font-weight: 600; color: #333; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    #sip-calculator-app .form-group-inline { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; margin-bottom: 10px; border-bottom: 1px solid #eee; }
+    #sip-calculator-app .form-group-inline > label { margin-bottom: 0; }
+    #sip-calculator-app .form-group label span { font-weight: 700; color: #3f51b5; }
+    #sip-calculator-app .form-group input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; font-weight: 500; box-sizing: border-box; margin-bottom: 10px; background-color: #fff; -moz-appearance: textfield; }
+    #sip-calculator-app .form-group input[type="number"]::-webkit-outer-spin-button, #sip-calculator-app .form-group input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #sip-calculator-app .form-group input[type="range"] { width: 100%; cursor: pointer; -webkit-appearance: none; height: 8px; background: #d3d3d3; border-radius: 5px; outline: none; }
+    #sip-calculator-app .form-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #3f51b5; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+    #sip-calculator-app .form-group input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #3f51b5; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+    #sip-calculator-app .radio-group { display: flex; gap: 15px; align-items: center; }
+    #sip-calculator-app .radio-option { display: flex; align-items: center; gap: 5px; }
+    #sip-calculator-app .radio-option label { font-weight: 500; margin-bottom: 0; cursor: pointer; }
+    
+    /* ---- FIX for Invisible Radio Buttons ---- */
+    #sip-calculator-app .radio-option input[type="radio"] {
+        -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+        appearance: auto !important;
+        accent-color: #26a69a;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    #sip-calculator-app .output-section { display: flex; flex-direction: column; background-color: #fff; padding: 20px; border-radius: 10px; border: 1px solid #e8eaf6; }
+    #sip-calculator-app #pieChart { width: 160px; height: 160px; border-radius: 50%; margin: 10px auto 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
+    #sip-calculator-app .legend { display: flex; justify-content: center; gap: 20px; width: 100%; margin-bottom: 20px; }
+    #sip-calculator-app .legend-item { display: flex; align-items: center; font-size: 14px; font-weight: 500; }
+    #sip-calculator-app .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+    #sip-calculator-app .results { width: 100%; text-align: left; }
+    #sip-calculator-app .results div { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-bottom: 1px solid #f0f0f0; }
+    #sip-calculator-app .results div:last-child { border-bottom: none; }
+    #sip-calculator-app .results span:first-child { color: #555; }
+    #sip-calculator-app .results span:last-child { font-weight: 700; color: #1a237e; }
+    #sip-calculator-app #realValueResult span, #sip-calculator-app #wealthGainedResult span { font-weight: 700; color: #00897b; }
+    #sip-calculator-app .chart-container { margin-top: 30px; padding: 20px; background-color: #fff; border-radius: 10px; border: 1px solid #e8eaf6; }
+    #sip-calculator-app #growthChartContainer { width: 100%; height: 400px; }
+    @media (max-width:768px) { #sip-calculator-app .input-grid { flex-direction: column; gap: 0; } #sip-calculator-app #growthChartContainer { height: 300px; } }
+</style>
+
+<div id="sip-calculator-app" class="sip-calculator-container">
+    <h2>SIP Calculator</h2>
+    <div class="calculator-body">
+        <div class="input-section">
+            <div class="form-group">
+                <label for="monthlyInvestment">Monthly Investment: <span id="investmentValueDisplay">Rs. 25,000</span></label>
+                <input type="number" id="monthlyInvestment" value="25000" min="500" max="100000">
+                <input type="range" id="monthlyInvestmentSlider" min="500" max="100000" step="500" value="25000">
+            </div>
+            <div class="form-group">
+                <label for="expectedReturn">Expected Return Rate (% p.a.): <span id="returnValueDisplay">12.0 %</span></label>
+                <input type="number" id="expectedReturn" value="12" min="1" max="30" step="0.1">
+                <input type="range" id="expectedReturnSlider" min="1" max="30" step="0.1" value="12">
+            </div>
+            <div class="form-group">
+                <label for="timePeriod">Time Period (Years): <span id="timeValueDisplay">10 Yrs</span></label>
+                <input type="number" id="timePeriod" value="10" min="1" max="40">
+                <input type="range" id="timePeriodSlider" min="1" max="40" step="1" value="10">
+            </div>
+        </div>
+        <div class="output-section">
+            <div class="form-group form-group-inline">
+                <label>Annual Step-Up?</label>
+                <div class="radio-group">
+                    <div class="radio-option"><input type="radio" id="stepUpNo" name="annualStepUpToggle" value="no" checked><label for="stepUpNo">No</label></div>
+                    <div class="radio-option"><input type="radio" id="stepUpYes" name="annualStepUpToggle" value="yes"><label for="stepUpYes">Yes</label></div>
+                </div>
+            </div>
+            <div class="form-group hidden" id="stepUpAmountGroup">
+                <label for="annualStepUpAmount">Step-Up Amount (Rs.): <span id="stepUpValueDisplay">Rs. 2,000</span></label>
+                <input type="number" id="annualStepUpAmount" value="2000" min="0" max="50000" step="500">
+                <input type="range" id="annualStepUpSlider" min="0" max="50000" step="500" value="2000">
+            </div>
+            <div class="form-group form-group-inline">
+                <label>Adjust for Inflation?</label>
+                <div class="radio-group">
+                    <div class="radio-option"><input type="radio" id="inflationNo" name="adjustForInflation" value="no" checked><label for="inflationNo">No</label></div>
+                    <div class="radio-option"><input type="radio" id="inflationYes" name="adjustForInflation" value="yes"><label for="inflationYes">Yes</label></div>
+                </div>
+            </div>
+            <div class="form-group hidden" id="inflationRateGroup">
+                <label for="inflationRate">Inflation Rate (%): <span id="inflationRateDisplay">6.0 %</span></label>
+                <input type="number" id="inflationRate" value="6" min="0" max="20" step="0.1">
+                <input type="range" id="inflationRateSlider" min="0" max="20" step="0.1" value="6">
+            </div>
+            <div id="pieChart"></div>
+            <div class="legend">
+                <div class="legend-item"><span style="background-color: #42a5f5;"></span>Invested Amount</div>
+                <div class="legend-item"><span style="background-color: #26a69a;"></span>Wealth Gained</div>
+            </div>
+            <div class="results">
+                <div><span>Invested Amount</span><span id="investedAmount"></span></div>
+                <div id="wealthGainedResult"><span>Wealth Gained</span><span id="wealthGained"></span></div>
+                <div><span>Future Value</span><span id="totalValue"></span></div>
+                <div id="realValueResult" class="hidden"><span>Value (in Today's Money)</span><span id="realValue"></span></div>
+            </div>
+        </div>
+    </div>
+    <div class="chart-container">
+        <h3 id="chartTitle">Year-on-Year Growth</h3>
+        <div id="growthChartContainer"><canvas id="growthChart"></canvas></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sipCalculator = {
+        state: { /* state properties */ },
+        elements: { /* element references */ },
+        growthChart: null,
+
+        init() {
+            this.elements = {
+                monthlyInvestmentInput: document.getElementById('monthlyInvestment'),
+                monthlyInvestmentSlider: document.getElementById('monthlyInvestmentSlider'),
+                expectedReturnInput: document.getElementById('expectedReturn'),
+                expectedReturnSlider: document.getElementById('expectedReturnSlider'),
+                timePeriodInput: document.getElementById('timePeriod'),
+                timePeriodSlider: document.getElementById('timePeriodSlider'),
+                stepUpRadioButtons: document.querySelectorAll('input[name="annualStepUpToggle"]'),
+                stepUpAmountGroup: document.getElementById('stepUpAmountGroup'),
+                annualStepUpAmountInput: document.getElementById('annualStepUpAmount'),
+                annualStepUpSlider: document.getElementById('annualStepUpSlider'),
+                inflationRadioButtons: document.querySelectorAll('input[name="adjustForInflation"]'),
+                inflationRateGroup: document.getElementById('inflationRateGroup'),
+                inflationRateInput: document.getElementById('inflationRate'),
+                inflationRateSlider: document.getElementById('inflationRateSlider'),
+                investmentValueDisplay: document.getElementById('investmentValueDisplay'),
+                stepUpValueDisplay: document.getElementById('stepUpValueDisplay'),
+                returnValueDisplay: document.getElementById('returnValueDisplay'),
+                timeValueDisplay: document.getElementById('timeValueDisplay'),
+                inflationRateDisplay: document.getElementById('inflationRateDisplay'),
+                investedAmountEl: document.getElementById('investedAmount'),
+                wealthGainedEl: document.getElementById('wealthGained'),
+                totalValueEl: document.getElementById('totalValue'),
+                pieChartEl: document.getElementById('pieChart'),
+                realValueResult: document.getElementById('realValueResult'),
+                realValueEl: document.getElementById('realValue'),
+                chartTitle: document.getElementById('chartTitle'),
+                growthChartCanvas: document.getElementById('growthChart')
+            };
+            this.bindEvents();
+            this.updateAndRender();
+        },
+
+        bindEvents() {
+            // Using "Rs. " to avoid theme conflicts with special symbols
+            const currencyFormatter = val => `Rs. ${parseFloat(val).toLocaleString('en-IN')}`;
+            const percentFormatter = val => `${parseFloat(val).toFixed(1)} %`;
+            const yearFormatter = val => `${parseInt(val)} Yrs`;
+
+            const inputs = [
+                { input: this.elements.monthlyInvestmentInput, slider: this.elements.monthlyInvestmentSlider, display: this.elements.investmentValueDisplay, formatter: currencyFormatter },
+                { input: this.elements.annualStepUpAmountInput, slider: this.elements.annualStepUpSlider, display: this.elements.stepUpValueDisplay, formatter: currencyFormatter },
+                { input: this.elements.expectedReturnInput, slider: this.elements.expectedReturnSlider, display: this.elements.returnValueDisplay, formatter: percentFormatter },
+                { input: this.elements.timePeriodInput, slider: this.elements.timePeriodSlider, display: this.elements.timeValueDisplay, formatter: yearFormatter },
+                { input: this.elements.inflationRateInput, slider: this.elements.inflationRateSlider, display: this.elements.inflationRateDisplay, formatter: percentFormatter }
+            ];
+
+            inputs.forEach(({ input, slider, display, formatter }) => {
+                input.addEventListener('input', e => { slider.value = e.target.value; if (display) display.textContent = formatter(e.target.value); });
+                slider.addEventListener('input', e => { input.value = e.target.value; if (display) display.textContent = formatter(e.target.value); });
+                input.addEventListener('change', () => this.updateAndRender());
+                slider.addEventListener('change', () => this.updateAndRender());
+            });
+
+            this.elements.stepUpRadioButtons.forEach(radio => { radio.addEventListener('change', () => this.updateAndRender()); });
+            this.elements.inflationRadioButtons.forEach(radio => { radio.addEventListener('change', () => this.updateAndRender()); });
+        },
+        
+        updateAndRender() {
+            this.updateStateFromUI();
+            this.render();
+        },
+        
+        updateStateFromUI() {
+            this.state.monthlyInvestment = parseFloat(this.elements.monthlyInvestmentInput.value);
+            this.state.expectedReturn = parseFloat(this.elements.expectedReturnInput.value) / 100;
+            this.state.timePeriod = parseInt(this.elements.timePeriodInput.value);
+            
+            this.state.isStepUpEnabled = document.querySelector('input[name="annualStepUpToggle"]:checked').value === 'yes';
+            this.state.annualStepUp = this.state.isStepUpEnabled ? parseFloat(this.elements.annualStepUpAmountInput.value) : 0;
+            
+            this.state.isInflationAdjusted = document.querySelector('input[name="adjustForInflation"]:checked').value === 'yes';
+            this.state.inflationRate = this.state.isInflationAdjusted ? parseFloat(this.elements.inflationRateInput.value) / 100 : 0;
+
+            this.elements.stepUpAmountGroup.classList.toggle('hidden', !this.state.isStepUpEnabled);
+            this.elements.inflationRateGroup.classList.toggle('hidden', !this.state.isInflationAdjusted);
+        },
+        
+        calculate() {
+            const { monthlyInvestment, annualStepUp, expectedReturn, timePeriod } = this.state;
+            if (isNaN(monthlyInvestment) || isNaN(expectedReturn) || isNaN(timePeriod) || monthlyInvestment <= 0 || timePeriod <= 0) {
+                return { yearlyData: { labels: [], investedData: [], growthData: [] }, finalTotalInvestment: 0, finalFutureValue: 0 };
+            }
+
+            const yearlyData = { labels: [], investedData: [], growthData: [] };
+            let futureValue = 0;
+            let totalInvestment = 0;
+
+            for (let year = 1; year <= timePeriod; year++) {
+                const currentMonthlyInvestment = monthlyInvestment + (annualStepUp * (year - 1));
+                futureValue *= (1 + expectedReturn);
+                const fvOfCurrentYearSips = currentMonthlyInvestment * ((Math.pow(1 + (expectedReturn / 12), 12) - 1) / (expectedReturn / 12));
+                futureValue += fvOfCurrentYearSips;
+                totalInvestment += currentMonthlyInvestment * 12;
+                
+                let valueForChart = futureValue / Math.pow(1 + this.state.inflationRate, year);
+                
+                yearlyData.labels.push(`Year ${year}`);
+                yearlyData.investedData.push(totalInvestment.toFixed(0));
+                yearlyData.growthData.push(valueForChart.toFixed(0));
+            }
+            return { yearlyData, finalTotalInvestment: totalInvestment, finalFutureValue: futureValue };
+        },
+
+        render() {
+            const { yearlyData, finalTotalInvestment, finalFutureValue } = this.calculate();
+            const estimatedGains = finalFutureValue - finalTotalInvestment;
+            const realValue = finalFutureValue / Math.pow(1 + this.state.inflationRate, this.state.timePeriod);
+
+            const format = (val) => `Rs. ${Math.round(val).toLocaleString('en-IN')}`;
+
+            this.elements.investedAmountEl.textContent = format(finalTotalInvestment);
+            this.elements.wealthGainedEl.textContent = format(estimatedGains);
+            this.elements.totalValueEl.textContent = format(finalFutureValue);
+            
+            this.elements.realValueResult.classList.toggle('hidden', !this.state.isInflationAdjusted);
+            this.elements.realValueEl.textContent = format(realValue);
+            this.elements.chartTitle.textContent = this.state.isInflationAdjusted ? 'Year-on-Year Growth (Inflation Adjusted)' : 'Year-on-Year Growth';
+
+            this.renderPieChart(finalTotalInvestment, estimatedGains);
+            this.renderLineChart(yearlyData);
+        },
+
+        renderPieChart(invested, returns) {
+            const total = invested + returns;
+            if (total <= 0) { this.elements.pieChartEl.style.background = '#e0e0e0'; return; }
+            const investedPercent = (invested / total) * 100;
+            this.elements.pieChartEl.style.background = `conic-gradient(#42a5f5 0% ${investedPercent}%, #26a69a ${investedPercent}% 100%)`;
+        },
+
+        renderLineChart(data) {
+            const ctx = this.elements.growthChartCanvas.getContext('2d');
+            if (this.growthChart) { this.growthChart.destroy(); }
+            const valueLabel = this.state.isInflationAdjusted ? "Value (in Today's Money)" : 'Total Value';
+
+            this.growthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        { label: 'Invested Amount', data: data.investedData, borderColor: '#42a5f5', backgroundColor: 'rgba(66, 165, 245, 0.1)', fill: true, tension: 0.1 },
+                        { label: valueLabel, data: data.growthData, borderColor: '#26a69a', backgroundColor: 'rgba(38, 166, 154, 0.1)', fill: true, tension: 0.1 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => {
+                                    if (value >= 10000000) return `Rs. ${(value / 10000000).toFixed(1)}Cr`;
+                                    if (value >= 100000) return `Rs. ${(value / 100000).toFixed(1)}L`;
+                                    return `Rs. ${(value / 1000).toFixed(0)}K`;
+                                }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        tooltip: { mode: 'index', intersect: false,
+                            callbacks: {
+                                label: context => `${context.dataset.label || ''}: Rs. ${parseFloat(context.parsed.y).toLocaleString('en-IN')}`
+                            }
+                        }
+                    },
+                    interaction: { mode: 'index', intersect: false, },
+                }
+            });
+        },
+        
+        resetResults() {
+             const zero = 'Rs. 0';
+             this.elements.investedAmountEl.textContent = zero;
+             this.elements.wealthGainedEl.textContent = zero;
+             this.elements.totalValueEl.textContent = zero;
+             this.elements.realValueEl.textContent = zero;
+             this.elements.pieChartEl.style.background = '#e0e0e0';
+             if (this.growthChart) { this.growthChart.destroy(); }
+        }
+    };
+
+    sipCalculator.init();
+});
+</script>
